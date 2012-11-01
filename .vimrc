@@ -1,0 +1,511 @@
+" Best Goddamn vimrc in the whole world.
+" Author: Seth House <seth@eseth.com>
+" For more information type :help followed by the command.
+
+set nocompatible                "cp:    turns off strct vi compatibility
+filetype plugin indent on
+
+
+" Search {{{
+
+set incsearch                   "is:    automatically begins searching as you type
+set ignorecase                  "ic:    ignores case when pattern matching
+set smartcase                   "scs:   ignores ignorecase when pattern contains uppercase characters
+set hlsearch                    "hls:   highlights search results
+
+" Use leader-n to unhighlight search results in normal mode:
+nmap <silent> <leader>n :silent noh<cr>
+" Display the number of matches for the last search
+nmap <leader># :%s:<C-R>/::gn<cr>
+" Restore case-sensitivity for jumping to tags (set ic disables it)
+map <silent> <C-]> :set noic<cr>g<C-]><silent>:set ic<cr>
+
+" }}}
+" Line Wrap {{{
+
+set backspace=indent,eol,start  "bs:    allows you to backspace over the listed character types
+set linebreak                   "lbr:   causes vim to not wrap text in the middle of a word
+set wrap                        "wrap:  wraps lines by default
+" Toggle line wrapping in normal mode:
+nmap <silent> <C-P> :set nowrap!<cr>:set nowrap?<cr>
+
+" }}}
+" Editing {{{
+
+set showmatch                   "sm:    flashes matching brackets or parentheses
+
+set nobackup                    "bk:    does not write a persistent backup file of an edited file
+set writebackup                 "wb:    does keep a backup file while editing a file
+
+" Searches the current directory as well as subdirectories with commands like :find, :grep, etc.
+set path=.,**
+
+set cindent                     "cin:   enables the second-most configurable indentation (see :help C-indenting).
+set cinoptions=l1,c4,(s,U1,w1,m1,j1,J1
+set cinwords=if,elif,else,for,while,try,except,finally,def,class
+
+set expandtab                   "et:    uses spaces instead of tab characters
+set smarttab                    "sta:   helps with backspacing because of expandtab
+set softtabstop=4               "ts:    number of spaces that a tab counts for
+set shiftwidth=4                "sw:    number of spaces to use for autoindent
+set shiftround                  "sr:    rounds indent to a multiple of shiftwidth
+
+set nojoinspaces                "nojs:  prevents inserting two spaces after punctuation on a join (it's not 1990 anymore)
+set lazyredraw                  "lz:    will not redraw the screen while running macros (goes faster)
+set pastetoggle=<F9>            "pt:    useful so auto-indenting doesn't mess up code when pasting
+
+set complete=.,w,b,u,i          "cpt:   use default insert completion minus tags (tags have own completion and are often slow)
+
+set virtualedit=block           "ve:    let cursor move past the last char in <C-V> mode
+set nostartofline               "sol:   avoid moving cursor to BOL when jumping around
+
+set cryptmethod=blowfish        "cm:    use (much) stronger blowfish encryption
+
+" Fix for legacy vi inconsistency
+map Y y$
+
+" Allow undoing insert-mode ctrl-u and ctrl-w
+inoremap <C-U> <C-G>u<C-U>
+inoremap <C-W> <C-G>u<C-W>
+
+" Add a line without changing position or leaving mode
+map <leader>o :set paste<cr>m`o<esc>``:set nopaste<cr>
+map <leader>O :set paste<cr>m`O<esc>``:set nopaste<cr>
+
+" A shortcut to show the numbered register contents
+map <F2> :reg "0123456789-*+:/<cr>
+
+set colorcolumn=80              "cc:    draw a visual line down the 80th column
+
+" Toggle between line numbers and relative line numbers
+nnoremap <silent><leader>u :exe "set " . (&relativenumber == 1 ? "" : "relative") . "number"<cr>
+
+"lcs:   displays tabs with :set list & displays when a line runs off-screen
+set listchars=tab:>-,trail:\ ,precedes:<,extends:>
+
+" Toggle spell-checking
+map <silent> <F10> :set nospell!<cr>:set nospell?<cr>
+
+" Maps Omnicompletion to CTRL-space since ctrl-x ctrl-o is for Emacs-style RSI
+inoremap <nul> <C-X><C-O>
+
+" don't select first item, follow typing in autocomplete
+set completeopt=longest,menuone,preview
+
+" Change directory to the path of the current file
+map <leader>cd :cd %:p:h<cr>
+" Edit a new file starting in the same dir as the current file
+map <leader>ce :e <C-R>=expand("%:p:h") . "/" <cr>
+map <leader>cs :sp <C-R>=expand("%:p:h") . "/" <cr>
+map <leader>ct :tabnew <C-R>=expand("%:p:h") . "/" <cr>
+
+" Highlight problem lines: more than 80 chars, trailing spaces, only whitespace
+" Toggle with \l
+nnoremap <silent> <leader>l
+      \ :set nolist!<cr>:set nolist?<cr>
+      \ :if exists('w:long_line_match') <bar>
+      \   silent! call matchdelete(w:long_line_match) <bar>
+      \   unlet w:long_line_match <bar>
+      \ elseif &textwidth > 0 <bar>
+      \   let w:long_line_match = matchadd('ErrorMsg', '\%>'.&tw.'v.\+', -1) <bar>
+      \ else <bar>
+      \   let w:long_line_match = matchadd('ErrorMsg', '\%>80v.\+', -1) <bar>
+      \ endif<cr>
+
+" Find merge conflict markers
+map <leader>fc /\v^[<=>]{7}( .*\|$)<cr>
+
+set dictionary=spell        " dict:     complete words from the spelling dict (when spell is on)
+" set thesaurus             " tsr:      complete words from a thesaurus
+
+" Use generic omnicompletion if something more specific isn't already set
+if has("autocmd") && exists("+omnifunc")
+    au Filetype *
+        \ if &omnifunc == "" | setl omnifunc=syntaxcomplete#Complete | endif
+endif
+
+if has("autocmd")
+    " Helps if you have to use another editor on the same file
+    au FileChangedShell * Warn "File has been changed outside of Vim."
+endif
+
+" If a ftplugin has defined the b:ftskeleton variable, try to load the
+" skeleton template.
+au BufNewFile * silent! exe "0r ". b:ftskeleton
+
+
+" }}}
+" Folding (spacebar toggles) {{{
+" Spacebar toggles a fold, zi toggles all folding, zM closes all folds
+
+noremap  <silent>  <space> :exe 'silent! normal! za'.(foldlevel('.')?'':'l')<cr>
+
+set foldmethod=marker           "fdm:   looks for patterns of triple-braces in a file
+"set foldcolumn=4                "fdc:   creates a small left-hand gutter for displaying fold info
+
+" }}}
+" Menu completion {{{
+
+set suffixes+=.pyc,.pyo         " Don't autocomplete these filetypes
+set wildmenu                    "wmnu:  enhanced ex command completion
+set wildmode=longest:full,list:full  "wim:   helps wildmenu auto-completion
+
+" }}}
+" Window Layout {{{
+
+set encoding=utf-8
+set number                      "nu:    numbers lines
+set showmode                    "smd:   shows current vi mode in lower left
+set cursorline                  "cul:   highlights the current line
+set showcmd                     "sc:    shows typed commands
+set cmdheight=2                 "ch:    make a little more room for error messages
+set sidescroll=2                "ss:    only scroll horizontally little by little
+set scrolloff=1                 "so:    places a line between the current line and the screen edge
+set sidescrolloff=2             "siso:  places a couple columns between the current column and the screen edge
+set laststatus=2                "ls:    makes the status bar always visible
+set ttyfast                     "tf:    improves redrawing for newer computers
+set history=200                 "hi:    number of search patterns and ex commands to remember
+                                "       (also used by viminfo below for /, :, and @ options)
+set viminfo='200                "vi:    For a nice, huuuuuge viminfo file
+
+if &columns < 88
+    " If we can't fit at least 80-cols, don't display these screen hogs
+    set nonumber
+    set foldcolumn=0
+endif
+
+" }}}
+" Multi-buffer/window/tab editing {{{
+
+set switchbuf=usetab            "swb:   Jumps to first tab or window that contains specified buffer instead of duplicating an open window
+set showtabline=1               "stal:  Display the tabbar if there are multiple tabs. Use :tab ball or invoke Vim with -p
+set hidden                      "hid:   allows opening a new buffer in place of an existing one without first saving the existing one
+
+set splitright                  "spr:   puts new vsplit windows to the right of the current
+set splitbelow                  "sb:    puts new split windows to the bottom of the current
+
+set winminheight=0              "wmh:   the minimal line height of any non-current window
+set winminwidth=0               "wmw:   the minimal column width of any non-current window
+
+" Type <F1> follwed by a buffer number or name fragment to jump to it.
+" Also replaces the annoying help button. Based on tip 821.
+map <F1> :ls<cr>:b<space>
+
+" Earlier Vims did not support tabs. Below is a vertical-tab-like cludge. Use
+" :ball or invoke Vim with -o (Vim tip 173)
+if version < 700
+    " ctrl-j,k will move up or down between split windows and maximize the
+    " current window
+    nmap <C-J> <C-W>j<C-W>_
+    nmap <C-K> <C-W>k<C-W>_
+else
+    " same thing without the maximization to easily move between split windows
+    nmap <C-J> <C-W>j
+    nmap <C-K> <C-W>k
+    nmap <C-H> <C-W>h
+    nmap <C-L> <C-W>l
+endif
+
+" Quickly jump to a tag if there's only one match, otherwise show the list
+map <F3> :tj<space>
+
+" Display a list of included files and quickly jump to one
+map <F4> [I:let nr = input("Which one: ")<bar>exe "normal " . nr ."[\t"<cr>
+
+" When restoring a hidden buffer Vim doesn't always keep the same view (like
+" when your view shows beyond the end of the file). (Vim tip 1375)
+if ! &diff
+    au BufLeave * let b:winview = winsaveview()
+    au BufEnter * if(exists('b:winview')) | call winrestview(b:winview) | endif
+endif
+
+" Shortcuts for working with quickfix/location lists
+nmap ]q :cnext<cr>
+nmap [q :cprev<cr>
+nmap ]Q :clast<cr>
+nmap [Q :cfirst<cr>
+
+" Disable one diff window during a three-way diff allowing you to cut out the
+" noise of a three-way diff and focus on just the changes between two versions
+" at a time. Inspired by Steve Losh's Splice
+function! DiffToggle(window)
+    " Save the cursor position and turn on diff for all windows
+    let l:save_cursor = getpos('.')
+    windo :diffthis
+
+    " Turn off diff for the specified window (but keep scrollbind) and move
+    " the cursor to the left-most diff window
+    exe a:window . "wincmd w"
+    diffoff
+    set scrollbind
+    set cursorbind
+    exe a:window . "wincmd " . (a:window == 1 ? "l" : "h")
+
+    " Update the diff and restore the cursor position
+    diffupdate
+    call setpos('.', l:save_cursor)
+endfunction
+" Toggle diff view on the left, center, or right windows
+nmap <silent> <leader>dl :call DiffToggle(1)<cr>
+nmap <silent> <leader>dc :call DiffToggle(2)<cr>
+nmap <silent> <leader>dr :call DiffToggle(3)<cr>
+
+
+" }}}
+" X11 Integration {{{
+" (I.e.: don't do any automatic integration, please :)
+
+set mouse=                      "       Disable mouse control for console Vim (very annoying)
+set clipboard=                  "       Disable automatic X11 clipboard crossover
+
+" }}}
+" Color {{{
+"   All coloring options are for the non-GUI Vim (see :help cterm-colors).
+
+syntax enable
+colorscheme desert
+
+" Make listchars (much) more noticable.
+hi SpecialKey ctermfg=7 ctermbg=1
+
+" Statusline
+" I like this better than all the reverse video of the default statusline.
+hi StatusLine term=bold,reverse cterm=bold ctermfg=7 ctermbg=none
+hi StatusLineNC term=reverse cterm=bold ctermfg=8
+hi User1 ctermfg=4
+hi User2 ctermfg=1
+hi User3 ctermfg=5
+hi User4 cterm=bold ctermfg=8
+hi User5 ctermfg=6
+hi User6 ctermfg=2
+hi User7 ctermfg=2
+hi User8 ctermfg=3
+hi User9 cterm=reverse ctermfg=8 ctermbg=7
+
+" Darkens the status line for non-active windows.
+au BufEnter * hi User9 ctermfg=7
+
+" A nice, minimalistic tabline.
+hi TabLine cterm=bold,underline ctermfg=8 ctermbg=none
+hi TabLineSel cterm=bold ctermfg=0 ctermbg=7
+hi TabLineFill cterm=bold ctermbg=none
+
+" Black ColorColumn to not catch the eye more than is necessary
+hi ColorColumn ctermbg=0
+
+" Makes the current line stand out with bold and in the numberline
+hi CursorLine cterm=bold
+hi LineNr cterm=bold ctermfg=0 ctermbg=none
+
+" Refresh busted syntax highlighting (this happens too often)
+noremap <F12> <esc>:syntax sync fromstart<cr>
+
+" }}}
+" Printing {{{
+
+" Shows line numbers and adjusts the left margin not to be ridiculous
+set printoptions=number:y,left:5pc
+set printfont=Monaco:h8         " face-type (not size) ignored in PostScript output :-(
+set printencoding=utf-8
+
+" }}}
+" :Explore mode {{{
+
+" NERDTree is a pretty slick (partial) replacement for :Explore
+let NERDTreeIgnore=['\.pyc$']
+let NERDTreeDirArrows=0
+map <F6> :NERDTreeToggle<cr>
+noremap <leader>gf :NERDTreeFind<cr>
+
+let g:netrw_hide=1          " Use the hiding list
+" Hide the following file patterns (change to suit your needs):
+" (I don't know what the fuck \~$ is, but file hiding seems to break without it appearing first in the list...)
+let g:netrw_list_hide='^\..*,\.pyc$'
+
+" Commands for :Explore (verify these!)
+let g:explVertical=1    " open vertical split winow
+let g:explSplitRight=1  " Put new window to the right of the explorer
+let g:explStartRight=0  " new windows go to right of explorer window
+
+" Tree view. Adaptable?
+" ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+
+" }}}
+
+" Scripting helpers {{{1
+
+command -nargs=1 Warn echohl WarningMsg | echo <args> | echohl None
+
+" }}}
+" Make the current buffer a scratch buffer {{{1
+
+function! Scratch()
+    setlocal buftype=nofile
+    setlocal bufhidden=delete
+    setlocal noswapfile
+endfunction
+
+" }}}
+" Diff two registers {{{
+" Open a diff of two registers in a new tabpage. Close the tabpage when
+" finished. If no registers are specified it diffs the most recent yank with
+" the most recent deletion.
+" Usage:
+"   :DiffRegs
+"   :DiffRegs @a @b
+
+function! DiffRegsFunc(...)
+    let l:left = a:0 == 2 ? a:1 : "@0"
+    let l:right = a:0 == 2 ? a:2 : "@1"
+
+    tabnew
+    exe 'put! ='. l:left
+    vnew
+    exe 'put! ='. l:right
+
+    windo call Scratch()
+    windo diffthis
+    winc t
+endfunction
+com -nargs=* DiffRegs call DiffRegsFunc(<f-args>)
+
+" }}}
+" Surrounding text with opfunc {{{
+
+" Adds a "surround" operator for use with text objects.
+" http://stackoverflow.com/a/8998136
+" Usage:
+"       Surround a sentence with quotes with:  sis"
+"       Specify different start and end surround characters by separating them
+"       with whitespace: siw<b> </b>
+nnoremap <silent> s :set opfunc=Surround<cr>g@
+vnoremap <silent> s :<C-U>call Surround(visualmode(), 1)<cr>
+function! Surround(vt, ...)
+    let s = input("Surround with: ")
+    let si = split(s, " ")
+    let sleft = si[-1]
+    let sright = si[0]
+    if s =~ "\<esc>" || s =~ "\<C-C>"
+        return
+    endif
+    " FIXME: if s contains a space, split and surround with left/right chars
+    let [sl, sc] = getpos(a:0 ? "'<" : "'[")[1:2]
+    let [el, ec] = getpos(a:0 ? "'>" : "']")[1:2]
+    if a:vt == 'line' || a:vt == 'V'
+        call append(el, sleft)
+        call append(sl-1, sright)
+    elseif a:vt == 'block' || a:vt == "\<C-V>"
+        exe sl.','.el 's/\%'.sc.'c\|\%'.ec.'c.\zs/\=s/g|norm!``'
+    else
+        exe el 's/\%'.ec.'c.\zs/\=sleft/|norm!``'
+        exe sl 's/\%'.sc.'c/\=sright/|norm!``'
+    endif
+endfunction
+
+" }}}
+" YankList {{{1
+" Is is possbile to store the ten most recent yanks using opfunc (similar to
+" the built-in numbered registers)?
+" NOTE: work in progress, this is currently non-functional
+
+" noremap <silent> gy :set opfunc=YankList<cr>g@
+" vmap <silent> gy :<C-U>call YankList(visualmode(), 1)<cr>
+" map <silent> gyy Y
+
+function! YankList(type, ...)
+    let sel_save = &selection
+    let &selection = "inclusive"
+    let reg_save = @@
+
+    echo "Something was copied!\n"
+
+    if a:0  " Invoked from Visual mode, use '< and '> marks.
+        silent exe "normal! `<" . a:type . "`>y"
+    elseif a:type == 'line' " Line
+        silent exe "normal! '[V']y"
+    elseif a:type == 'block' " Block
+        silent exe "normal! `[\<C-V>`]y"
+    else " ???
+        silent exe "normal! `[v`]y"
+    endif
+endfunction
+
+" }}}
+" MyTabLine {{{
+" Number the tabs.
+
+function! MyTabLine()
+    let s = ''
+    let t = tabpagenr()
+    let i = 1
+
+    while i <= tabpagenr('$')
+        let buflist = tabpagebuflist(i)
+        let winnr = tabpagewinnr(i)
+        let curwinnr = tabpagewinnr(i,'$')
+
+        let s .= (i == t ? '%#TabLineSel#' : '%#TabLine#')
+        let s .= '%' . i . 'T'
+        let s .= ' '  . i . ': '
+        let file = bufname(buflist[winnr - 1])
+        let file = fnamemodify(file, ':p:t')
+        if file == ''
+            let file = '[No Name]'
+        endif
+        let s .= file
+        let s .= (curwinnr > 1 ? ' (' . curwinnr .') ' : '')
+        let s .= ' '
+        let i = i + 1
+    endwhile
+    let s .= '%T%#TabLineFill#%='
+    let s .= (tabpagenr('$') > 1 ? '%999XX' : 'X')
+    return s
+endfunction
+
+set tabline=%!MyTabLine()
+
+" }}}
+
+" Plugin settings {{{
+
+""" Wordnet settings
+noremap  <F11> "wyiw:call WordNetOverviews(@w)<cr>
+
+""" Gundo settings
+nnoremap <F7> :GundoToggle<cr>
+
+""" Syntastic settings
+let g:syntastic_enable_highlighting = 0
+nmap <silent> <leader>y :SyntasticCheck<cr>
+
+""" Tagbar plugin settings
+map <F5> :TagbarToggle<cr>
+let g:tagbar_sort = 0
+let g:tagbar_compact = 1
+let g:tagbar_autoshowtag = 1
+let g:tagbar_width = 25
+let g:tagbar_iconchars = ['+', '-']
+
+" Auto-open tagbar only if not in diff mode and the term wide enough to also
+" fit an 80-column window (plus eight for line numbers and the fold column).
+if &columns > 118
+    if ! &diff
+        au VimEnter * nested :call tagbar#autoopen(1)
+    endif
+else
+    let g:tagbar_autoclose = 1
+    let g:tagbar_autofocus = 1
+endif
+
+""" Powerline settings
+let g:Powerline_stl_path_style = 'short'
+" If I'm running Vim via ssh, the patched font probably isn't available
+" wherever I'm connecting from, so fallback to compatible
+let g:Powerline_symbols = $SSH_CLIENT == "" ? 'unicode' : 'compatible'
+" Show marker if buffer contains trailing whitespace
+
+" }}}
+
+" eof
+" vim:ft=vim:fdm=marker:ff=unix:nowrap:tabstop=4:shiftwidth=4:softtabstop=4:smarttab:shiftround:expandtab
+
